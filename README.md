@@ -7,13 +7,12 @@ Keyboard-focusable flat tabs for **macOS SwiftUI**.
 - Space / Return activates the focused tab
 - If tabs overflow, they scroll automatically to keep focused/selected tab visible
 - Mouse click selects a tab but does not “force” keyboard focus highlight
-- Can clear focus from external controls (e.g. `TextField`) when you click tabs/strip
 
-![selected](screenshots/selected.png)
-
-![focused](screenshots/focused.png)
-
-![hovered](screenshots/hovered.png)
+<p float="left">
+  <img src="screenshots/selected.png" width="500" />
+  <img src="screenshots/focused.png" width="500" />
+  <img src="screenshots/hovered.png" width="500" />
+</p>
 
 ## Installation (Swift Package Manager)
 
@@ -21,7 +20,7 @@ Add package in Xcode:
 
 File → Add Packages Dependencies… → https://github.com/Eugene-Kugut/FocusableTabs.git
 
-# Usage
+## Usage
 
 ```swift
 import SwiftUI
@@ -47,3 +46,19 @@ struct DemoView: View {
         )
     }
 }
+```
+
+## Customization
+
+```swift
+FocusableTabs(
+    items: items,
+    selection: $selection,
+    selectedBackground: Color.primary.opacity(0.12),
+    focusedBackground: Color.accentColor.opacity(0.15),
+    focusedOverlay: Color.accentColor,
+    hoveredBackground: Color.primary.opacity(0.06),
+    spacing: 4,
+    cornerRadius: 10
+)
+```
