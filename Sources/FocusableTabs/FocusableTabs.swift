@@ -31,6 +31,7 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
     public let hoveredBackground: Color
     public let spacing: CGFloat
     public let cornerRadius: CGFloat
+    public let layout: FocusableTabsLayout
 
     @Binding public var selection: ID
 
@@ -42,7 +43,8 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         focusedOverlay: Color = Color.accentColor.opacity(0.9),
         hoveredBackground: Color = Color.primary.opacity(0.06),
         spacing: CGFloat = 2,
-        cornerRadius: CGFloat = 8
+        cornerRadius: CGFloat = 8,
+        layout: FocusableTabsLayout = .scroll
     ) {
         self.items = items
         self._selection = selection
@@ -52,6 +54,7 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         self.focusedOverlay = focusedOverlay
         self.spacing = spacing
         self.cornerRadius = cornerRadius
+        self.layout = layout
     }
 
     // MARK: - Focus state (internal)
@@ -74,15 +77,26 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
     public var body: some View {
         ScrollViewReader { proxy in
             ZStack {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: spacing) {
+                switch layout {
+                case .scroll:
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: spacing) {
+                            ForEach(items) { item in
+                                tabCell(for: item)
+                                    .id(item.id)
+                            }
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
+                case .wrap(let alignment):
+                    WrapLayout(spacing: spacing, alignment: alignment) {
                         ForEach(items) { item in
                             tabCell(for: item)
                                 .id(item.id)
                         }
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
                 }
 
                 TabsKeyHost(
@@ -231,31 +245,25 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
 
     /// Enter focus into tabs ONLY via Tab traversal.
     private func focusOnEntry(_ direction: TabMoveDirection) -> Bool {
-        if let anchor = anchorTabID, !isEnabled(anchor) {
-            anchorTabID = nil
+        if isEnabled(selection) {
+            focusedTabID = selection
+            anchorTabID = selection
+            return true
         }
 
-        let targetID: ID? = {
-            if let anchor = anchorTabID {
-                switch direction {
-                case .next:
-                    return nextEnabled(after: anchor) ?? firstEnabledID()
-                case .previous:
-                    return previousEnabled(before: anchor) ?? lastEnabledID()
-                }
-            } else {
-                switch direction {
-                case .next: return firstEnabledID()
-                case .previous: return lastEnabledID()
-                }
+        let fallback: ID? = {
+            switch direction {
+            case .next: return firstEnabledID()
+            case .previous: return lastEnabledID()
             }
         }()
 
-        guard let id = targetID else { return false }
+        guard let id = fallback else { return false }
         focusedTabID = id
         anchorTabID = id
         return true
     }
+
 
     // MARK: - Move / Activate
 

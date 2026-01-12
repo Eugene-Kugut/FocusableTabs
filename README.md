@@ -59,6 +59,18 @@ FocusableTabs(
     focusedOverlay: Color.accentColor,
     hoveredBackground: Color.primary.opacity(0.06),
     spacing: 4,
-    cornerRadius: 10
+    cornerRadius: 10,
+    layout: FocusableTabsLayout = .scroll
 )
 ```
+
+## Layout
+
+- **`scroll`**  
+  Displays tabs in a single horizontal row.  
+  When the content exceeds the available width, horizontal scrolling is enabled.
+
+- **`wrap(alignment: .leading)`**  
+  Displays tabs across multiple rows with automatic line wrapping.  
+  Tabs flow to the next line when they no longer fit the available width.  
+  Rows are aligned according to the provided alignment (`leading`, `center`, or `trailing`).
