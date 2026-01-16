@@ -27,7 +27,8 @@ final class TabsKeyHostView: NSView {
         // If became firstResponder because of Tab traversal -> run entry logic.
         if let event = NSApp.currentEvent,
            event.type == .keyDown,
-           event.keyCode == 48 {
+           event.keyCode == 48,
+           !event.modifierFlags.contains(.control) { // <- ctrl+tab is NOT traversal
             let direction: TabMoveDirection = event.modifierFlags.contains(.shift) ? .previous : .next
             onTabTraversalIn?(direction)
         }
@@ -47,20 +48,25 @@ final class TabsKeyHostView: NSView {
         case 48: // Tab
             onKeyboardInteraction?()
 
-            guard let window else { return }
             let isBackward = event.modifierFlags.contains(.shift)
+            let direction: TabMoveDirection = isBackward ? .previous : .next
 
-            // IMPORTANT:
-            // Tab / Shift+Tab should NOT move between tabs.
-            // It should leave the control (standard key-view loop behavior).
+            // Ctrl+Tab / Ctrl+Shift+Tab -> move between tabs (like arrows)
+            if event.modifierFlags.contains(.control) {
+                _ = onMove?(direction, true) // wrapping=true (cyclic), same as arrows
+                return
+            }
+
+            // Plain Tab / Shift+Tab -> leave the control via key-view loop
+            guard let window else { return }
+
             if isBackward {
                 window.selectPreviousKeyView(self)
             } else {
                 window.selectNextKeyView(self)
             }
 
-            // If focus didn't leave (e.g. no other key views) — do nothing.
-            // (No wrapping inside tabs on Tab.)
+            // If focus didn't leave (no other key views) — do nothing.
 
         case 49 /* Space */, 36 /* Return */, 76 /* Enter */:
             onKeyboardInteraction?()
