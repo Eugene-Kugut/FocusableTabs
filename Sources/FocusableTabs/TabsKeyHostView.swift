@@ -1,3 +1,4 @@
+// TabsKeyHostView.swift
 import AppKit
 
 final class TabsKeyHostView: NSView {
@@ -42,35 +43,24 @@ final class TabsKeyHostView: NSView {
 
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {
+
         case 48: // Tab
             onKeyboardInteraction?()
 
+            guard let window else { return }
             let isBackward = event.modifierFlags.contains(.shift)
-            let direction: TabMoveDirection = isBackward ? .previous : .next
 
-            // 1) Try move focus within tabs without wrap
-            let handled = onMove?(direction, false) ?? false
-
-            // 2) If not handled -> move to next/prev key-view
-            if !handled {
-                guard let window else { return }
-
-                let before = window.firstResponder
-
-                if isBackward {
-                    window.selectPreviousKeyView(self)
-                } else {
-                    window.selectNextKeyView(self)
-                }
-
-                let after = window.firstResponder
-
-                // 3) If focus did not leave (tabs is the only control) -> wrap inside
-                if after == nil || after === before || after === self {
-                    window.makeFirstResponder(self)
-                    _ = onMove?(direction, true)
-                }
+            // IMPORTANT:
+            // Tab / Shift+Tab should NOT move between tabs.
+            // It should leave the control (standard key-view loop behavior).
+            if isBackward {
+                window.selectPreviousKeyView(self)
+            } else {
+                window.selectNextKeyView(self)
             }
+
+            // If focus didn't leave (e.g. no other key views) — do nothing.
+            // (No wrapping inside tabs on Tab.)
 
         case 49 /* Space */, 36 /* Return */, 76 /* Enter */:
             onKeyboardInteraction?()
