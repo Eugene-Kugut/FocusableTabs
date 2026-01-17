@@ -1,10 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// Keyboard-focusable horizontal tabs (macOS).
 public struct FocusableTabs<ID: Hashable, Label: View>: View {
-
-    // MARK: - Item
 
     public struct Item: Identifiable {
         public var id: ID
@@ -22,12 +19,13 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         }
     }
 
-    // MARK: - Public API
-
     public let items: [Item]
     public let selectedBackground: Color
     public let focusedBackground: Color
     public let focusedOverlay: Color
+    public let focusedOverlayLineWidth: CGFloat
+    public let overlayColor: Color
+    public let overlayLineWidth: CGFloat
     public let hoveredBackground: Color
     public let spacing: CGFloat
     public let cornerRadius: CGFloat
@@ -41,10 +39,13 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         selectedBackground: Color = Color.primary.opacity(0.10),
         focusedBackground: Color = Color.accentColor.opacity(0.12),
         focusedOverlay: Color = Color.accentColor.opacity(0.9),
+        focusedOverlayLineWidth: CGFloat = 1.5,
+        overlayColor: Color = .clear,
+        overlayLineWidth: CGFloat = 1 / 3,
         hoveredBackground: Color = Color.primary.opacity(0.06),
         spacing: CGFloat = 2,
         cornerRadius: CGFloat = 8,
-        layout: FocusableTabsLayout = .scroll
+        layout: FocusableTabsLayout = .scroll(horizontalOffset: nil)
     ) {
         self.items = items
         self._selection = selection
@@ -52,33 +53,29 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         self.focusedBackground = focusedBackground
         self.hoveredBackground = hoveredBackground
         self.focusedOverlay = focusedOverlay
+        self.focusedOverlayLineWidth = focusedOverlayLineWidth
+        self.overlayColor = overlayColor
+        self.overlayLineWidth = overlayLineWidth
         self.spacing = spacing
         self.cornerRadius = cornerRadius
         self.layout = layout
     }
 
-    // MARK: - Focus state (internal)
-
-    /// True when the key-host NSView is firstResponder.
     @State private var isKeyHostFocused = false
 
-    /// Focus highlight for tab navigation (our own visual focus).
     @State private var focusedTabID: ID?
 
-    /// Show focus highlight only after keyboard interaction.
     @State private var showsKeyboardFocus = false
 
-    /// Anchor tab used when user re-enters by Tab traversal.
     @State private var anchorTabID: ID?
 
-    /// Trigger to clear external firstResponder (TextField, etc.).
     @State private var clearExternalFocusToken = UUID()
 
     public var body: some View {
         ScrollViewReader { proxy in
             ZStack {
                 switch layout {
-                case .scroll:
+                case .scroll(let horizontalOffset):
                     ScrollView(.horizontal, showsIndicators: false) {
                         LazyHStack(spacing: spacing) {
                             ForEach(items) { item in
@@ -86,8 +83,7 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
                                     .id(item.id)
                             }
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, horizontalOffset)
                     }
                     .scrollBounceBehavior(.basedOnSize)
                 case .wrap(let alignment):
@@ -134,7 +130,6 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
                 .allowsHitTesting(false)
             )
             .onTapGesture {
-                // Click on the strip (not on a tab):
                 focusedTabID = nil
                 anchorTabID = nil
                 showsKeyboardFocus = false
@@ -146,14 +141,12 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
                 anchorTabID = nil
                 showsKeyboardFocus = false
             }
-            // Auto-scroll to focused tab when navigating by keyboard
             .onChange(of: focusedTabID) { _, newValue in
                 guard let id = newValue else { return }
                 withAnimation(.snappy(duration: 0.18)) {
                     proxy.scrollTo(id, anchor: .center)
                 }
             }
-            // Auto-scroll to selected tab (mouse click / external selection change)
             .onChange(of: selection) { _, newValue in
                 withAnimation(.snappy(duration: 0.18)) {
                     proxy.scrollTo(newValue, anchor: .center)
@@ -168,8 +161,6 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    // MARK: - UI
-
     private func tabCell(for item: Item) -> some View {
         let isSelected = item.id == selection
         let isFocused = showsKeyboardFocus && isKeyHostFocused && item.id == focusedTabID
@@ -181,11 +172,13 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
             isFocused: isFocused,
             backgroundColor: tabBackgroundColor(isSelected:isFocused:isHovered:),
             focusedOverlay: focusedOverlay,
+            focusedOverlayLineWidth: focusedOverlayLineWidth,
+            overlayColor: overlayColor,
+            overlayLineWidth: overlayLineWidth,
             cornerRadius: cornerRadius,
             onClick: {
                 guard item.isEnabled else { return }
 
-                // Mouse:
                 selection = item.id
                 anchorTabID = item.id
 
@@ -204,8 +197,6 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         if isHovered { return hoveredBackground }
         return .clear
     }
-
-    // MARK: - Focus helpers
 
     private func isEnabled(_ id: ID) -> Bool {
         items.first(where: { $0.id == id })?.isEnabled == true
@@ -243,7 +234,6 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         return nil
     }
 
-    /// Enter focus into tabs ONLY via Tab traversal.
     private func focusOnEntry(_ direction: TabMoveDirection) -> Bool {
         if isEnabled(selection) {
             focusedTabID = selection
@@ -265,10 +255,6 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
     }
 
 
-    // MARK: - Move / Activate
-
-    /// wrapping=true  — cyclic (arrows)
-    /// wrapping=false — no wrap (Tab/Shift+Tab to allow leaving control)
     @discardableResult
     private func moveFocus(_ direction: TabMoveDirection, wrapping: Bool) -> Bool {
         guard !items.isEmpty else { return false }

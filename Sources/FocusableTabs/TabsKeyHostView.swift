@@ -1,4 +1,3 @@
-// TabsKeyHostView.swift
 import AppKit
 
 final class TabsKeyHostView: NSView {
@@ -24,11 +23,10 @@ final class TabsKeyHostView: NSView {
 
         onFocusChange?(true)
 
-        // If became firstResponder because of Tab traversal -> run entry logic.
         if let event = NSApp.currentEvent,
            event.type == .keyDown,
            event.keyCode == 48,
-           !event.modifierFlags.contains(.control) { // <- ctrl+tab is NOT traversal
+           !event.modifierFlags.intersection(.deviceIndependentFlagsMask).contains(.control) {
             let direction: TabMoveDirection = event.modifierFlags.contains(.shift) ? .previous : .next
             onTabTraversalIn?(direction)
         }
@@ -42,31 +40,44 @@ final class TabsKeyHostView: NSView {
         return ok
     }
 
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard event.type == .keyDown else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        if event.keyCode == 48 {
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags.contains(.control) && !flags.contains(.command) && !flags.contains(.option) {
+                onKeyboardInteraction?()
+
+                let direction: TabMoveDirection = flags.contains(.shift) ? .previous : .next
+                _ = onMove?(direction, true)
+                return true
+            }
+        }
+
+        return super.performKeyEquivalent(with: event)
+    }
+
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {
 
         case 48: // Tab
             onKeyboardInteraction?()
 
-            let isBackward = event.modifierFlags.contains(.shift)
-            let direction: TabMoveDirection = isBackward ? .previous : .next
-
-            // Ctrl+Tab / Ctrl+Shift+Tab -> move between tabs (like arrows)
-            if event.modifierFlags.contains(.control) {
-                _ = onMove?(direction, true) // wrapping=true (cyclic), same as arrows
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags.contains(.control) {
+                let direction: TabMoveDirection = flags.contains(.shift) ? .previous : .next
+                _ = onMove?(direction, true)
                 return
             }
 
-            // Plain Tab / Shift+Tab -> leave the control via key-view loop
             guard let window else { return }
-
-            if isBackward {
+            if flags.contains(.shift) {
                 window.selectPreviousKeyView(self)
             } else {
                 window.selectNextKeyView(self)
             }
-
-            // If focus didn't leave (no other key views) — do nothing.
 
         case 49 /* Space */, 36 /* Return */, 76 /* Enter */:
             onKeyboardInteraction?()
@@ -74,11 +85,13 @@ final class TabsKeyHostView: NSView {
 
         case 123: // Left
             onKeyboardInteraction?()
-            _ = onMove?(.previous, true)
+            let moved = onMove?(.previous, false) ?? false
+            if moved { onActivate?() }
 
         case 124: // Right
             onKeyboardInteraction?()
-            _ = onMove?(.next, true)
+            let moved = onMove?(.next, false) ?? false
+            if moved { onActivate?() }
 
         default:
             super.keyDown(with: event)

@@ -10,7 +10,6 @@ struct TabsKeyHost: NSViewRepresentable {
     let onMove: (TabMoveDirection, _ wrapping: Bool) -> Bool
     let onActivate: () -> Void
 
-    /// Called ONLY when focus enters via Tab traversal (Tab / Shift+Tab).
     let onFocusInByTabTraversal: (TabMoveDirection) -> Bool
 
     let onFocusOut: () -> Void
@@ -28,7 +27,6 @@ struct TabsKeyHost: NSViewRepresentable {
     func updateNSView(_ nsView: TabsKeyHostView, context: Context) {
         applyCallbacks(to: nsView)
 
-        // 1) Clear external firstResponder when token changed
         if nsView.lastClearToken != clearExternalFocusToken {
             nsView.lastClearToken = clearExternalFocusToken
             DispatchQueue.main.async {
@@ -39,7 +37,6 @@ struct TabsKeyHost: NSViewRepresentable {
             }
         }
 
-        // 2) Host focus management
         DispatchQueue.main.async {
             guard let window = nsView.window else { return }
 

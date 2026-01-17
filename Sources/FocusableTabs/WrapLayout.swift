@@ -4,8 +4,6 @@ struct WrapLayout: Layout {
     let spacing: CGFloat
     let alignment: HorizontalAlignment
 
-    // MARK: - Layout
-
     func sizeThatFits(
         proposal: ProposedViewSize,
         subviews: Subviews,
@@ -67,8 +65,6 @@ struct WrapLayout: Layout {
             y += row.height + spacing
         }
     }
-
-    // MARK: - Row building
 
     private struct RowItem {
         let subview: Subviews.Element
