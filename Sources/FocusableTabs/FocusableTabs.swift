@@ -26,6 +26,7 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
     public let focusedOverlayLineWidth: CGFloat
     public let overlayColor: Color
     public let overlayLineWidth: CGFloat
+    public let selectedOverlayColor: Color
     public let hoveredBackground: Color
     public let spacing: CGFloat
     public let cornerRadius: CGFloat
@@ -38,11 +39,14 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         selection: Binding<ID>,
         selectedBackground: Color = Color.primary.opacity(0.10),
         focusedBackground: Color = Color.accentColor.opacity(0.12),
+        hoveredBackground: Color = Color.primary.opacity(0.06),
+
         focusedOverlay: Color = Color.accentColor.opacity(0.9),
         focusedOverlayLineWidth: CGFloat = 1.5,
+        selectedOverlayColor: Color = .clear,
         overlayColor: Color = .clear,
         overlayLineWidth: CGFloat = 1 / 3,
-        hoveredBackground: Color = Color.primary.opacity(0.06),
+
         spacing: CGFloat = 2,
         cornerRadius: CGFloat = 8,
         layout: FocusableTabsLayout = .scroll(horizontalOffset: nil)
@@ -54,6 +58,7 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
         self.hoveredBackground = hoveredBackground
         self.focusedOverlay = focusedOverlay
         self.focusedOverlayLineWidth = focusedOverlayLineWidth
+        self.selectedOverlayColor = selectedOverlayColor
         self.overlayColor = overlayColor
         self.overlayLineWidth = overlayLineWidth
         self.spacing = spacing
@@ -170,9 +175,12 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
             isEnabled: item.isEnabled,
             isSelected: isSelected,
             isFocused: isFocused,
-            backgroundColor: tabBackgroundColor(isSelected:isFocused:isHovered:),
+            selectedBackground: selectedBackground,
+            focusedBackground: focusedBackground,
+            hoveredBackground: hoveredBackground,
             focusedOverlay: focusedOverlay,
             focusedOverlayLineWidth: focusedOverlayLineWidth,
+            selectedOverlayColor: selectedOverlayColor,
             overlayColor: overlayColor,
             overlayLineWidth: overlayLineWidth,
             cornerRadius: cornerRadius,
@@ -189,13 +197,6 @@ public struct FocusableTabs<ID: Hashable, Label: View>: View {
                 clearExternalFocusToken = UUID()
             }
         )
-    }
-
-    private func tabBackgroundColor(isSelected: Bool, isFocused: Bool, isHovered: Bool) -> Color {
-        if isSelected { return selectedBackground }
-        if isFocused { return focusedBackground }
-        if isHovered { return hoveredBackground }
-        return .clear
     }
 
     private func isEnabled(_ id: ID) -> Bool {

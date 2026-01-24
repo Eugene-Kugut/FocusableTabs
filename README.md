@@ -54,13 +54,16 @@ struct DemoView: View {
 FocusableTabs(
     items: items,
     selection: $selection,
-    selectedBackground: Color.primary.opacity(0.12),
-    focusedBackground: Color.accentColor.opacity(0.15),
-    focusedOverlay: Color.accentColor,
+    selectedBackground: Color.primary.opacity(0.10),
+    focusedBackground: Color.accentColor.opacity(0.12),
+    focusedOverlay: Color.accentColor.opacity(0.9),
+    focusedOverlayLineWidth: 1.5,
+    overlayColor: Color = .clear,
+    overlayLineWidth: 1 / 3,
     hoveredBackground: Color.primary.opacity(0.06),
-    spacing: 4,
-    cornerRadius: 10,
-    layout: FocusableTabsLayout = .scroll
+    spacing: 2,
+    cornerRadius: 8,
+    layout: .scroll(horizontalOffset: nil)
 )
 ```
 
